@@ -23,7 +23,7 @@ CI95_empircal <- function(post.bounds){
   }
   result <- data.frame(x.y,pdf=pdf)
   
-  idx <- which(abs(result$pdf-0.95)<1e-06)
+  idx <- which(abs(result$pdf-0.95)<1e-03)
   differ <- result$y[idx]-result$x[idx]
   jdx <- which.min(differ)
   x.y.95 <- cbind(result$x[idx],result$y[idx])
@@ -66,69 +66,51 @@ CI_95 <- function(post.bounds){
 stan.model <- "
 data {
 
-int<lower=0> N[12];
+int<lower=0> N[6];
 }
 
 transformed data {
 
-vector[15] ones;
+vector[10] ones;
 
-for(i in 1:15){
+for(i in 1:10){
 ones[i] = 1;
 }
 }
 
 parameters {
 
-simplex[15] p;
-real<lower=0, upper=1> q;
+simplex[10] p;
 
 }
 
 transformed parameters {
 
-simplex[12] op;
+simplex[6] op;
 
 
 
-op[1] = (1-q)*p[11];
-op[2] = (1-q)*p[12];
-op[3] = (1-q)*p[13];
-op[4] = (1-q)*p[14];
-op[5] = (1-q)*p[15];
-op[6]= (1-q)*(p[1]+p[2]+p[3]+p[4]+p[5]+p[6]+p[7]+p[8]+p[9]+p[10]);
-op[7] = q*(p[11]+p[6]);
-op[8] = q*(p[12]+p[7]);
-op[9] = q*(p[13]+p[8]);
-op[10] = q*(p[14]+p[9]);
-op[11] = q*(p[15]+p[10]);
-op[12] = q*(p[1]+p[2]+p[3]+p[4]+p[5]);
+op[1] = p[1];
+op[2] = p[2];
+op[3] = p[3];
+op[4] = p[4];
+op[5] = p[5];
+op[6]= p[6]+p[7]+p[8]+p[9]+p[10];
 
 }
 
 model {
 p  ~ dirichlet(ones);
-q  ~ uniform(0,1);
 N  ~ multinomial(op);
 }
 
 generated quantities {
-real<lower=0, upper=5> tp[7];
+
 real bounds[2];
-
-
-tp[1] = (p[11]*1+p[12]*2+p[13]*3+p[14]*4+p[15]*5)/(p[11] + p[12]+p[13]+p[14]+p[15]);
-tp[2] = p[11] + p[12] + p[13] + p[14] + p[15];
-tp[3] = p[1]+p[2]+p[3]+p[4]+p[5] ;
-tp[4] = p[6]+p[7]+p[8]+p[9]+p[10];
-tp[5] = ((p[6]+p[11])+2*(p[7]+p[12])+3*(p[8]+p[13])+4*(p[9]+p[14])+5*(p[10]+p[15]))/(p[5]+p[6]+p[7]+p[8]+p[9]+p[10]+p[11]+p[12]+p[13]+p[14]+p[15]);
-tp[6] = (p[6]+2*p[7]+3*p[8]+4*p[9]+5*p[10])/(p[6]+p[7]+p[8]+p[9]+p[10]);
-tp[7] = 1*(p[1]+p[5]+p[11])+2*(p[2]+p[6]+p[12])+3*(p[3]+p[8]+p[13])+4*(p[4]+p[9]+p[13])+5*(p[5]+p[10]+p[15]);
-
-
-
-bounds[1] = tp[5] * (tp[2] + tp[4]) + tp[3];
-bounds[2] = tp[5] * (tp[2] + tp[4]) + 5*tp[3];
+bounds[1] = p[1]+2*p[2]+3*p[3]+4*p[4]+5*p[5]+(p[6]+p[7]+
+p[8]+p[9]+p[10]);
+bounds[2] = p[1]+2*p[2]+3*p[3]+4*p[4]+5*p[5]+5*(p[6]+p[7]+
+p[8]+p[9]+p[10]);
 }
 
 "
@@ -148,7 +130,7 @@ gernating.function <- function(r0,r1){
 
 
 
-simulationtimes <- 2
+simulationtimes <- 1
 post.95 <- matrix(0,simulationtimes,2)
 post.b <- matrix(0,simulationtimes,2)
 true.y.result <- rep(0,simulationtimes)
@@ -186,21 +168,15 @@ for(simulation in 1:simulationtimes){
   y[idx] <- NA
   data <- cbind(z,r,y)
   
-  data_count <- table(z,r,y,useNA = "ifany")
-  n011 <- data_count[[3]]
-  n111 <- data_count[[4]]
-  n012 <- data_count[[7]]
-  n112 <- data_count[[8]]
-  n013 <- data_count[[11]]
-  n113 <- data_count[[12]]
-  n014 <- data_count[[15]]
-  n114 <- data_count[[16]]
-  n015 <- data_count[[19]]
-  n115 <- data_count[[20]]
-  m00 <- data_count[[21]]
-  m10 <- data_count[[22]]
+  data_count <- table(r,y,useNA = "ifany")
+  n11 <- data_count[2,1]
+  n12 <- data_count[2,2]
+  n13 <- data_count[2,3]
+  n14 <- data_count[2,4]
+  n15 <- data_count[2,5]
+  m <- data_count[1,6]
   
-  n.obs <- c(n011,n012,n013,n014,n015,m00,n111,n112,n113,n114,n115,m10)
+  n.obs <- c(n11,n12,n13,n14,n15,m)
   # p_int<- c(0.024,rep(0.004,4),0.032,0.032,0.192,0.032,0.032,rep(0.064,4),0.384)
   # q_int <- 0.2
   # int <- list(list(p=p_int,q=q_int+runif(1,0,0.01)),
@@ -220,21 +196,9 @@ for(simulation in 1:simulationtimes){
   print(rst);
   
   post.p <- extract(rst, "p")$p;
-  post.q <- extract(rst, "q")$q;
-  post.tp <- extract(rst, "tp")$tp;
   post.bounds <- extract(rst, "bounds")$bounds;
   
-  mu <- colMeans(post.bounds)
-  Sigma <- var(post.bounds)
-  mu1 <- mu[1]
-  mu2 <- mu[2]
-  sigma1 <- sqrt(2)
-  sigma2 <- sqrt(4)
-  p <- Sigma[1,2]/(sigma1*sigma2)
-  
-  
-  ##check if P(Y=1) is always in the bounds
-  mean(post.tp[,7] > post.bounds[,1] & post.tp[,7] < post.bounds[,2])
+
   a <- CI95_empircal(post.bounds)
   
   post.95[simulation,1] <- a[1]
@@ -246,4 +210,4 @@ for(simulation in 1:simulationtimes){
 
 result <- list(post.tp = post.tp, post.bounds=post.bounds,post.95 = post.95)
 
-save(result,file=paste0("/users/hzhang1/R/Dan/simulation2_bayesian_multi/",i1,".RData"))
+save(result,file=paste0("/users/hzhang1/R/Dan/simulation2_bayesian_multi_na/",i1,".RData"))
