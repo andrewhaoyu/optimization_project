@@ -101,3 +101,10 @@ for(i in 1:ncol(y.interest)){
   Bd.result <- rbind(Bd.result,computebounds(y.interest[,i]))
 }
 
+
+
+
+
+######
+realdata.Result <- cbind(Na.result,Bd.result)
+places <- 2
