@@ -40,7 +40,7 @@ return(rst);
 matrix kxx(vector x, int ntot, int covfn, real lambda, real tau2, real sigma2) {
 matrix[ntot, ntot] rst;
 for (i in 1:ntot) {
-# nugget 0.00001 for stability
+// nugget 0.00001 for stability
 rst[i,i] = tau2 + sigma2 + 0.00001;
 for (j in (i+1):ntot) {
 rst[i,j] = tau2 * kappa_f(x[i], x[j], lambda, covfn);
@@ -85,19 +85,21 @@ Sigma = kxx(w, N, COVFN, lambda, tau2, sigma2);
 }
 
 model{
-//prior
-//beta   ~ normal(0,1000);
+//priorbeta   ~ normal(0,1000);
 lambda ~ cauchy(0, 2.5);
 sigma2 ~ lognormal(0, 2);
 tau2   ~ lognormal(0, 2);
 
 //relation between f and m, since z|m~normal(m,1)
 target += multi_normal_lpdf(y | mu, Sigma);
+
+
+
 }'
 
 smodel <- stan_model(model_code = stan.model);
-n_train = 150
-n_test = 10
+n_train = 100
+n_test = 0
 data   <- simu.data(n_train,n_test,n_train+n_test);
 data$y = data$y[1:n_train]
 

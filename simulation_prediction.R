@@ -12,8 +12,8 @@ c=1
 
 ##simulation the data with link f = a+b*w+c*w^2
 simu.data <- function(ntrain,ntest,n, a=0, b=0, c=1) {
-  w <- rnorm(n);
-  y <- rbinom(n,1,expit(a+b*w+c*w^2));
+  w <- runif(n);
+  y <- a+b*w+c*w^2+rnorm(n,0,0.1)
   list(Ntrain=ntrain,Ntest=ntest, N=n, y=y, w=w)
 }
 
