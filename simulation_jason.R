@@ -96,7 +96,7 @@ target += multi_normal_lpdf(y | mu, Sigma);
 }'
 
 smodel <- stan_model(model_code = stan.model);
-n_train = 100
+n_train = 150
 n_test = 10
 data   <- simu.data(n_train,n_test,n_train+n_test);
 data$y = data$y[1:n_train]
